@@ -1,80 +1,72 @@
 <?php
-
 session_start();
-require 'db.php';
+require 'config.php';
 
-$login = '';
-$errors = [];
+$error = '';
 
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $login = $_POST['login'];
     $password = $_POST['password'];
 
-    if ($login == '' || $password == '') {
-        $errors[] = 'Введите все данные';
-    }
+    $stmt = $pdo->prepare("SELECT * FROM users WHERE login = ?");
+    $stmt->execute([$login]);
+    $user = $stmt->fetch();
 
-    if ($login == 'Admin' && $password == 'KorokNET') {
-        $_SESSION['admin'] = true;
+    if ($login === 'Admin26' && $password === 'Demo20') {
+        $_SESSION['user_id'] = 1;
+        $_SESSION['login'] = 'Admin26';
+        $_SESSION['role'] = 'admin';
         header('Location: admin.php');
         exit;
     }
+    elseif ($user && password_verify($password, $user['password'])) {
+        $_SESSION['user_id'] = $user['id'];
+        $_SESSION['login'] = $user['login'];
+        $_SESSION['role'] = $user['role'];
 
-    if (count($errors) == 0) {
-        $stmt = $pdo->prepare('SELECT * FROM users WHERE login = ?');
-        $stmt->execute([$login]);
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        if (!$user || !password_verify($password, $user['password'])) {
-            $errors[] = 'Неправильный логин или пароль';
+        if ($user['role'] === 'admin') {
+            header('Location: admin.php');
         } else {
-            $_SESSION['user_id'] = $user['id'];
-            $_SESSION['login'] = $user['login'];
-            header('Location: app.php');
-            exit;
+            header('Location: dashboard.php');
         }
+        exit;
+    } else {
+        $error = 'Неверный логин или пароль';
     }
 }
-
 ?>
+
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вход - Водить.РФ</title>
     <link rel="stylesheet" href="style.css">
-    <title>Главная страница</title>
 </head>
 <body>
-    <div class="header">
+    <header>
+        <img src="logo.png" class="logo" alt="Логотип">
+        <h1>Водить.РФ</h1>
+    </header>
 
-        <div class="left-sidebar">
-            <a href="index.php">
-                <img src="1233.jpg" alt="">
-            </a>
+    <main>
+        <div class="form">
+            <?php if ($error): ?>
+                <div style="color:red"><?= $error ?></div>
+            <?php endif; ?>
+            <form method="post">
+                <input type="text" name="login" placeholder="Логин" required>
+                <input type="password" name="password" placeholder="Пароль" required>
+                <button type="submit">Войти</button>
+            </form>
+            <p>Нет аккаунта? <a href="register.php">Зарегистрироваться</a></p>
         </div>
+    </main>
 
-        <div class="ssylki">
-            <a href="registration.php">
-                <b><h3>Зарегистрироваться</h3></b>
-            </a>
-        </div>
-    </div>
-    <div class="index">
-        
-        <div class="main">  
-            <div class="form">
-                <?php foreach ($errors as $error): ?>
-                    <p><?= $error ?></p>
-                <?php endforeach; ?>
-                <form action="" method="post">
-                    <input type="text" name='login' placeholder="  Логин" required>
-                    <input type="password" name='password' placeholder="  Пароль" required>
-                    <button type="submit">Авторизоваться</button>
-                    <a href="registration.php">У меня нет учетной записи</a>
-                </form>
-            </div>
-        </div>
-    </div>
+    <footer>
+        <img src="logo.png" class="logo" alt="Логотип">
+        <h1>Водить.РФ</h1>
+    </footer>
 </body>
 </html>
